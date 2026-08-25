@@ -1,0 +1,42 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Unzip project
+        run: unzip -o SMSFlooder-iOS.zip -d project
+
+      - name: Build app (unsigned)
+        run: |
+          cd project/SMSFlooder-iOS
+          xcodebuild -project SMSFlooder.xcodeproj \
+            -target SMSFlooder \
+            -configuration Release \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            SYMROOT="$PWD/build" \
+            OBJROOT="$PWD/build/obj" \
+            build
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -r project/SMSFlooder-iOS/build/Release-iphoneos/SMSFlooder.app Payload/
+          zip -r SMSFlooder.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SMSFlooder-ipa
+          path: SMSFlooder.ipa
